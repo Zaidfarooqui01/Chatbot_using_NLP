@@ -1,2 +1,2 @@
-# Chatbot_using_NLP_AICTE
+# Chatbot_using_NLP
 implementation of chatbot using NLP
