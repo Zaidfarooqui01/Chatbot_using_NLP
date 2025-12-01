@@ -4,7 +4,7 @@ from datetime import datetime
 import csv
 import nltk
 import ssl
-import streamlit as st
+import streamlit as st # type: ignore
 import random
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.linear_model import LogisticRegression
@@ -13,8 +13,11 @@ from sklearn.linear_model import LogisticRegression
 ssl.create_default_context = ssl._create_unverified_context
 # Add nltk data path
 nltk.data.path.append(os.path.abspath("nltk_data"))
-# Download necessary nltk data
-nltk.download("punkt")
+# Download necessary nltk data (guarded by try/except in case it's already present)
+try:
+    nltk.data.find('tokenizers/punkt')
+except LookupError:
+    nltk.download("punkt")
 
 # Load intents file
 file_path = os.path.abspath("intents.json")
@@ -78,7 +81,6 @@ def main():
             response = chatbot(user_input)
             st.text_area("chatbot:", value=response, height=120, max_chars=None, key=f"chatbot_response_{counter}")
             timestamp = datetime.now().strftime(f"%d-%m-%Y %H:%M:%S")
-            print(timestamp)
 
             # Append user input and response to chat log file
             with open('chat_log.csv', 'a', newline='', encoding='utf-8') as csvfile:
@@ -86,7 +88,7 @@ def main():
                 csv_writer.writerow([user_input_str, response, timestamp])
 
             # Stop the app if the conversation ends
-            if response.lower() in ['goodbye', 'bye', 'take care']:
+            if response and response.lower() in ['goodbye', 'bye', 'take care']:
                 st.write("Thank you for talking with me, have a nice day!")
                 st.stop()
 
@@ -123,13 +125,18 @@ def main():
     # Conversation History section
     elif choice == 'Conversation History':
         st.header("Conversation History")
-        with open('chat_log.csv', 'r', encoding='utf-8') as csvfile:
-            csv_reader = csv.reader(csvfile)
-            for row in csv_reader:
-                st.text(f"User: {row[0]}")
-                st.text(f"Chatbot: {row[1]}")
-                st.text(f"Timestamp: {row[2]}")
-                st.markdown('---')
+        if os.path.exists('chat_log.csv'):
+            with open('chat_log.csv', 'r', encoding='utf-8') as csvfile:
+                csv_reader = csv.reader(csvfile)
+                for row in csv_reader:
+                    if len(row) >= 3:
+                        st.text(f"User: {row[0]}")
+                        st.text(f"Chatbot: {row[1]}")
+                        st.text(f"Timestamp: {row[2]}")
+                        st.markdown('---')
+        else:
+            st.write("No conversation history found.")
 
 if __name__ == '__main__':
     main()
+
